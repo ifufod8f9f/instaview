@@ -11,6 +11,7 @@
         android:theme="@style/AppTheme" >
         <activity
             android:name=".PhotoActivity"
+            android:icon="@drawable/ic_launcher"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

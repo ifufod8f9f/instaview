@@ -1,8 +1,9 @@
 package com.codepath.rpeterson.instaview;
 
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.text.format.DateUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ListView;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 public class PhotoActivity extends ActionBarActivity {
     private ArrayList<PhotoCard> photoCards;
     private PhotoCardArrayAdapter photoCardArrayAdapter;
+    private SwipeRefreshLayout swipeContainer;
     ListView photoCardsListView;
 
     public static final String CLIENT_ID = "591e47b4c7844184ba7e934c793b3994";
@@ -29,6 +31,20 @@ public class PhotoActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo);
+
+        swipeContainer = (SwipeRefreshLayout) findViewById(R.id.swipeContainer);
+        // Setup refresh listener which triggers new data loading
+        swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                fetchPopularPhotos();
+            }
+        });
+        // Configure the refreshing colors
+        swipeContainer.setColorSchemeResources(android.R.color.holo_blue_bright,
+                android.R.color.holo_green_light,
+                android.R.color.holo_orange_light,
+                android.R.color.holo_red_light);
 
         photoCards = new ArrayList<PhotoCard>();
         photoCardsListView = (ListView) findViewById(R.id.lvPhotoCards);
@@ -47,6 +63,7 @@ public class PhotoActivity extends ActionBarActivity {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 JSONArray photosJSON = null;
+                photoCards.clear();
 
                 try {
                     photosJSON = response.getJSONArray("data");
@@ -55,18 +72,30 @@ public class PhotoActivity extends ActionBarActivity {
                         JSONObject photoJSON = photosJSON.getJSONObject(i);
                         PhotoCard photoCard = new PhotoCard();
 
+                        JSONObject commentsJSON = photoJSON.getJSONObject("comments");
                         photoCard.username = photoJSON.getJSONObject("user").getString("username");
                         photoCard.userProfileImageUrl = photoJSON.getJSONObject("user").getString("profile_picture");
-                        photoCard.caption = photoJSON.getJSONObject("caption").getString("text");
                         photoCard.imageUrl = photoJSON.getJSONObject("images").getJSONObject("standard_resolution").getString("url");
                         photoCard.likeCount = photoJSON.getJSONObject("likes").getInt("count");
-                        photoCard.timestamp = photoJSON.getInt("created_time");
+                        photoCard.timestamp = photoJSON.getInt("created_time") * 1000L;
+                        photoCard.commentCount = commentsJSON.getInt("count");
+                        photoCard.comments = commentsJSON.getJSONArray("data");
+
+                        if (photoJSON.has("caption")) {
+                            if (!photoJSON.isNull("caption")) {
+                                photoCard.caption = photoJSON.getJSONObject("caption").getString("text");
+                            }
+                        }
 
                         photoCards.add(photoCard);
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+
+                swipeContainer.setRefreshing(false);
+
+                updateTimes();
 
                 photoCardArrayAdapter.notifyDataSetChanged();
             }
@@ -78,6 +107,30 @@ public class PhotoActivity extends ActionBarActivity {
         });
 
 
+    }
+
+    private void updateTimes() {
+        Long now = System.currentTimeMillis();
+        Long hour = 1000L * 60L * 60L;
+        Long day = 1000L * 60L * 60L * 24L;
+        Long resolution;
+        Long timeDiff;
+
+        for (int i = 0; i < photoCards.size(); i++) {
+
+            PhotoCard photoCard = photoCards.get(i);
+            timeDiff = now - photoCard.timestamp;
+
+            if (timeDiff < hour) {
+                resolution = DateUtils.SECOND_IN_MILLIS;
+            } else if (timeDiff < day) {
+                resolution = DateUtils.HOUR_IN_MILLIS;
+            } else {
+                resolution = DateUtils.DAY_IN_MILLIS;
+            }
+
+            photoCard.timeString = DateUtils.getRelativeTimeSpanString(photoCard.timestamp, now, resolution).toString();
+        }
     }
 
 
