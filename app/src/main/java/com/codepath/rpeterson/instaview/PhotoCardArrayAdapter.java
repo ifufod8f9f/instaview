@@ -1,6 +1,7 @@
 package com.codepath.rpeterson.instaview;
 
 import android.content.Context;
+import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -84,12 +85,14 @@ public class PhotoCardArrayAdapter extends ArrayAdapter<PhotoCard> {
         viewHolder.ivPhoto.setImageResource(0);
         viewHolder.tvTime.setText(photoCard.timeString);
         viewHolder.ivUserProfile.setImageResource(0);
-        viewHolder.tvLikes.setText(numberFormatter.format(photoCard.likeCount) + " likes");
+        viewHolder.tvLikes.setText("\u2665 " + numberFormatter.format(photoCard.likeCount) + " likes");
         viewHolder.tvUsername.setText(photoCard.username);
 
         if (commentOneName != null && commentTwoName != null && commentOneContent != null && commentTwoContent != null) {
-            viewHolder.tvCommentOne.setText(commentOneName + ' ' + commentOneContent);
-            viewHolder.tvCommentTwo.setText(commentTwoName + ' ' + commentTwoContent);
+            String htmlOne = "<font color='#0E5078'>" + commentOneName + "</font>" + " " + commentOneContent;
+            String htmlTwo = "<font color='#0E5078'>" + commentTwoName + "</font>" + " " + commentTwoContent;
+            viewHolder.tvCommentOne.setText(Html.fromHtml(htmlOne));
+            viewHolder.tvCommentTwo.setText(Html.fromHtml(htmlTwo));
         }
 
         Picasso.with(getContext()).load(photoCard.imageUrl).placeholder(R.drawable.load_photo).into(viewHolder.ivPhoto);
